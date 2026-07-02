@@ -4,6 +4,10 @@ A bilingual (EN/ES) mobile web app for the points of interest of Cartagena,
 Colombia. Built as a **static, no-build** multi-page app from the design system
 in [`DESIGN.md`](./DESIGN.md) (created with Google Stitch).
 
+**🌐 Live demo: https://aranguren.github.io/Cartagena-Guide-Claude/**
+
+> Best viewed in a phone-width window (it's a mobile-first design).
+
 ## Run it
 
 No build step — it's plain HTML/CSS/JS. Because pages fetch shared scripts,
