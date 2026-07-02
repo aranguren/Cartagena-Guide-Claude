@@ -1,7 +1,7 @@
 /* Cartagena de Indias — content model
    One shared source of truth for every screen. All user-facing text is
-   bilingual: { en, es }. Images use seeded Lorem Picsum so they always load;
-   swap `img` values for real Cartagena photography when available. */
+   bilingual: { en, es }. Images are real Cartagena photography from Wikimedia
+   Commons (see PHOTOS below), keyed by POI/itinerary id. */
 
 window.CATEGORIES = [
   { id: "history",   icon: "fort",          en: "History",   es: "Historia" },
@@ -12,7 +12,27 @@ window.CATEGORIES = [
   { id: "nature",    icon: "forest",        en: "Nature",    es: "Naturaleza" },
 ];
 
-function img(seed) { return `https://picsum.photos/seed/${seed}/800/600`; }
+// Real Cartagena photography from Wikimedia Commons (freely licensed, hotlinkable).
+// img() falls back to a seeded placeholder if a key is missing, and the <img>
+// onerror handler in app.js swaps to a branded gradient if a URL ever fails.
+const PHOTOS = {
+  "san-felipe": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Castillo_San_Felipe_de_Barajas%2C_Cartagena_15.jpg/960px-Castillo_San_Felipe_de_Barajas%2C_Cartagena_15.jpg",
+  "ciudad-amurallada": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Murallas%2C_Cartagena_de_indias_Colombia-2008_05.jpg/960px-Murallas%2C_Cartagena_de_indias_Colombia-2008_05.jpg",
+  "torre-reloj": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Puerta_del_Reloj%2C_Cartagena_03.jpg/960px-Puerta_del_Reloj%2C_Cartagena_03.jpg",
+  "plaza-santo-domingo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Plaza_Santo_Domingo%2C_Cartagena.jpg/960px-Plaza_Santo_Domingo%2C_Cartagena.jpg",
+  "getsemani": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Graffiti_in_Getseman%C3%AD%2C_Cartagena_01.jpg/960px-Graffiti_in_Getseman%C3%AD%2C_Cartagena_01.jpg",
+  "bocagrande": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Bocagrande_skyline_from_Baluarte_San_Francisco_Javier_CTG_11_2019_2158.jpg/960px-Bocagrande_skyline_from_Baluarte_San_Francisco_Javier_CTG_11_2019_2158.jpg",
+  "islas-rosario": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Playa_Blanca_-_Islas_del_Rosario_%284625668665%29.jpg/960px-Playa_Blanca_-_Islas_del_Rosario_%284625668665%29.jpg",
+  "la-popa": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/View_of_Cartagena_from_Convento_de_Santa_Cruz_de_la_Popa_02.jpg/960px-View_of_Cartagena_from_Convento_de_Santa_Cruz_de_la_Popa_02.jpg",
+  "bazurto": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Mercado_de_Bazurto.jpg/960px-Mercado_de_Bazurto.jpg",
+  "cafe-del-mar": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Atardecer_Cartagenero.jpg/960px-Atardecer_Cartagenero.jpg",
+  "catedral": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Catedral_de_Cartagena_de_Indias_1.JPG/960px-Catedral_de_Cartagena_de_Indias_1.JPG",
+  "inquisicion": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Colombia%2C_Cartagena%2C_Palacio_de_la_Inquisici%C3%B3n.jpg/960px-Colombia%2C_Cartagena%2C_Palacio_de_la_Inquisici%C3%B3n.jpg",
+  "itin-walled": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Colombia%2C_Cartagena%2C_Sector_Antiguo%2C_Calle_de_los_Santos_de_Piedra.jpg/960px-Colombia%2C_Cartagena%2C_Sector_Antiguo%2C_Calle_de_los_Santos_de_Piedra.jpg",
+  "itin-beach": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Playa_Blanca_-_Cartagena_-_Colombia.jpg/960px-Playa_Blanca_-_Cartagena_-_Colombia.jpg",
+  "itin-history": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Castillo_San_Felipe_de_Barajas%2C_Cartagena_15.jpg/960px-Castillo_San_Felipe_de_Barajas%2C_Cartagena_15.jpg",
+};
+function img(key) { return PHOTOS[key] || `https://picsum.photos/seed/${key}/800/600`; }
 
 window.POIS = [
   {
@@ -24,7 +44,7 @@ window.POIS = [
     area: { en: "Pie de la Popa", es: "Pie de la Popa" },
     price: { en: "COP 30,000", es: "COP 30.000" },
     hours: { en: "8:00 AM – 6:00 PM", es: "8:00 – 18:00" },
-    img: img("cart-sanfelipe"),
+    img: img("san-felipe"),
     lat: 10.4224, lng: -75.5388,
     desc: {
       en: "The greatest fortress ever built by the Spanish in their colonies. Its tunnels, ramparts and sweeping views over the bay make it Cartagena's most iconic landmark.",
@@ -40,7 +60,7 @@ window.POIS = [
     area: { en: "Centro Histórico", es: "Centro Histórico" },
     price: { en: "Free", es: "Gratis" },
     hours: { en: "Open 24 hours", es: "Abierto 24 horas" },
-    img: img("cart-walls"),
+    img: img("ciudad-amurallada"),
     lat: 10.4231, lng: -75.5501,
     desc: {
       en: "The walled Old Town — a UNESCO World Heritage site of balconied colonial mansions, plazas and 11 km of 17th-century stone walls best walked at golden hour.",
@@ -56,7 +76,7 @@ window.POIS = [
     area: { en: "Centro Histórico", es: "Centro Histórico" },
     price: { en: "Free", es: "Gratis" },
     hours: { en: "Open 24 hours", es: "Abierto 24 horas" },
-    img: img("cart-torre"),
+    img: img("torre-reloj"),
     lat: 10.4222, lng: -75.5486,
     desc: {
       en: "The yellow clock tower and historic main gateway into the walled city — the classic starting point for any walk through the Centro.",
@@ -72,7 +92,7 @@ window.POIS = [
     area: { en: "Centro Histórico", es: "Centro Histórico" },
     price: { en: "Free", es: "Gratis" },
     hours: { en: "Open 24 hours", es: "Abierto 24 horas" },
-    img: img("cart-plaza"),
+    img: img("plaza-santo-domingo"),
     lat: 10.4243, lng: -75.5518,
     desc: {
       en: "A lively square framed by cafés and the leaning church tower, home to Botero's reclining 'Gertrudis' bronze. The heart of Cartagena's evening buzz.",
@@ -88,7 +108,7 @@ window.POIS = [
     area: { en: "Getsemaní", es: "Getsemaní" },
     price: { en: "Free", es: "Gratis" },
     hours: { en: "Open 24 hours", es: "Abierto 24 horas" },
-    img: img("cart-getsemani"),
+    img: img("getsemani"),
     lat: 10.4196, lng: -75.5455,
     desc: {
       en: "The bohemian barrio of street art, umbrella-covered lanes and Plaza de la Trinidad — where locals, musicians and travellers gather after dark.",
@@ -104,7 +124,7 @@ window.POIS = [
     area: { en: "Bocagrande", es: "Bocagrande" },
     price: { en: "Free", es: "Gratis" },
     hours: { en: "Open 24 hours", es: "Abierto 24 horas" },
-    img: img("cart-bocagrande"),
+    img: img("bocagrande"),
     lat: 10.3985, lng: -75.5567,
     desc: {
       en: "The city-beach strip below Cartagena's modern skyline — easy sand, beach vendors and sunset views, a short ride from the Old Town.",
@@ -120,7 +140,7 @@ window.POIS = [
     area: { en: "Archipiélago", es: "Archipiélago" },
     price: { en: "From COP 90,000", es: "Desde COP 90.000" },
     hours: { en: "Day tours 8 AM – 4 PM", es: "Tours 8:00 – 16:00" },
-    img: img("cart-rosario"),
+    img: img("islas-rosario"),
     lat: 10.1780, lng: -75.7500,
     desc: {
       en: "A protected coral archipelago an hour offshore — turquoise water, white sand and snorkelling. The classic Cartagena day trip.",
@@ -136,7 +156,7 @@ window.POIS = [
     area: { en: "Cerro de la Popa", es: "Cerro de la Popa" },
     price: { en: "COP 12,000", es: "COP 12.000" },
     hours: { en: "8:30 AM – 5:30 PM", es: "8:30 – 17:30" },
-    img: img("cart-popa"),
+    img: img("la-popa"),
     lat: 10.4186, lng: -75.5297,
     desc: {
       en: "A 17th-century convent crowning the city's highest hill, with a serene courtyard and the best panoramic view over Cartagena and the sea.",
@@ -152,7 +172,7 @@ window.POIS = [
     area: { en: "Bazurto", es: "Bazurto" },
     price: { en: "Free entry", es: "Entrada gratis" },
     hours: { en: "5:00 AM – 4:00 PM", es: "5:00 – 16:00" },
-    img: img("cart-bazurto"),
+    img: img("bazurto"),
     lat: 10.4083, lng: -75.5213,
     desc: {
       en: "Cartagena's raw, roaring food market — fresh fish, tropical fruit and the city's most authentic Caribbean cooking. Go with a guide.",
@@ -168,7 +188,7 @@ window.POIS = [
     area: { en: "Baluarte de Santo Domingo", es: "Baluarte de Santo Domingo" },
     price: { en: "Drinks from COP 25,000", es: "Tragos desde COP 25.000" },
     hours: { en: "5:00 PM – 2:00 AM", es: "17:00 – 2:00" },
-    img: img("cart-cafedelmar"),
+    img: img("cafe-del-mar"),
     lat: 10.4268, lng: -75.5533,
     desc: {
       en: "A sunset bar built right onto the colonial ramparts. Order a cocktail as the sun drops into the Caribbean — Cartagena's signature evening.",
@@ -184,7 +204,7 @@ window.POIS = [
     area: { en: "Centro Histórico", es: "Centro Histórico" },
     price: { en: "COP 15,000", es: "COP 15.000" },
     hours: { en: "10:00 AM – 6:00 PM", es: "10:00 – 18:00" },
-    img: img("cart-catedral"),
+    img: img("catedral"),
     lat: 10.4236, lng: -75.5501,
     desc: {
       en: "The coral-stone cathedral with its distinctive orange-and-white bell tower, one of the oldest episcopal seats in the Americas.",
@@ -200,7 +220,7 @@ window.POIS = [
     area: { en: "Plaza de Bolívar", es: "Plaza de Bolívar" },
     price: { en: "COP 23,000", es: "COP 23.000" },
     hours: { en: "9:00 AM – 6:00 PM", es: "9:00 – 18:00" },
-    img: img("cart-inquisicion"),
+    img: img("inquisicion"),
     lat: 10.4230, lng: -75.5505,
     desc: {
       en: "A superbly preserved colonial palace on Plaza de Bolívar, now a museum recounting the darker chapters of the Spanish Inquisition in the New World.",
@@ -212,7 +232,7 @@ window.POIS = [
 window.ITINERARIES = [
   {
     id: "walled-city-2-days",
-    img: img("cart-itin-walled"),
+    img: img("itin-walled"),
     days: 2, hours: 6,
     title: { en: "2 Days in the Walled City", es: "2 Días en la Ciudad Amurallada" },
     subtitle: {
@@ -236,7 +256,7 @@ window.ITINERARIES = [
   },
   {
     id: "beaches-islands",
-    img: img("cart-itin-beach"),
+    img: img("itin-beach"),
     days: 1, hours: 8,
     title: { en: "Beaches & Islands", es: "Playas e Islas" },
     subtitle: {
@@ -252,7 +272,7 @@ window.ITINERARIES = [
   },
   {
     id: "history-lovers",
-    img: img("cart-itin-history"),
+    img: img("itin-history"),
     days: 1, hours: 5,
     title: { en: "History Lover's Cartagena", es: "Cartagena Histórica" },
     subtitle: {

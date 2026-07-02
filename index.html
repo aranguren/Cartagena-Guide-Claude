@@ -36,7 +36,7 @@
   function render() {
     const hero =
       `<section class="relative h-[62vh] min-h-[420px] photo-overlay">` +
-        `<img ${App.imgAttrs("https://picsum.photos/seed/cart-hero/900/1200", "Cartagena Old City")} class="absolute inset-0 w-full h-full object-cover"/>` +
+        `<img ${App.imgAttrs(img("torre-reloj"), "Cartagena Old City")} class="absolute inset-0 w-full h-full object-cover"/>` +
         `<div class="relative z-10 h-full flex flex-col justify-end p-5 pb-7 text-white">` +
           `<h1 class="font-display font-semibold text-[44px] leading-[0.98]">${t("home_hero_title").replace("\n", "<br>")}</h1>` +
           `<p class="mt-2 text-white/85 text-[15px]">${t("home_hero_sub")}</p>` +

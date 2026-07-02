@@ -55,9 +55,13 @@ Ocean Teal `#1B7A8C`, Sunny Gold `#E8A93C` on Ivory `#FAF6F0`.
 
 ## Notes / next steps
 
-- **Images** are seeded [Lorem Picsum](https://picsum.photos) placeholders so
-  they always load. Swap the `img(...)` URLs in `data.js` for real Cartagena
-  photography. A branded gradient is shown automatically if an image fails.
+- **Images** are real Cartagena photography from
+  [Wikimedia Commons](https://commons.wikimedia.org) (freely licensed,
+  hotlinked), defined in the `PHOTOS` map in `data.js` and keyed by POI /
+  itinerary id. If a URL ever fails to load, the `<img>` `onerror` handler
+  swaps in a branded gradient placeholder, so the layout never breaks. Each
+  image is attributed to its Commons source file; check individual file pages
+  for licence/attribution requirements before commercial reuse.
 - **Tailwind** uses the Play CDN for zero-build convenience (it prints a console
   warning and has no SRI). For production, compile Tailwind with the CLI/PostCSS
   and self-host fonts. Note: the Play CDN compiles utility classes
