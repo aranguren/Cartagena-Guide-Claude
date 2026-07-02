@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Guides — Cartagena de Indias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      primary: "#C65D3B", "primary-dark": "#A84A2C",
+      secondary: "#1B7A8C", "secondary-dark": "#145E6C",
+      accent: "#E8A93C", background: "#FAF6F0", surface: "#FFFFFF",
+      "surface-warm": "#F2EAE0", ink: "#2A2320", "ink-muted": "#6B5F55",
+      border: "#E4D9CC", success: "#2E8B57", warning: "#E8A93C", error: "#C0392B",
+    },
+    fontFamily: { display: ["Fraunces", "serif"], body: ["Inter", "sans-serif"] },
+    borderRadius: { pill: "999px" },
+  }}};
+</script>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="stylesheet" href="assets/css/app.css"/>
+</head>
+<body>
+<div id="app"></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  const t = (k, n) => I18N.t(k, n), f = (o) => I18N.f(o);
+  const itin = getItinerary(App.getParam("id"));
+
+  /* ---- List of guides ------------------------------------------------- */
+  function renderList() {
+    return (
+      `<section class="px-5 pt-5">` +
+        `<h1 class="font-display text-2xl font-semibold text-ink">${t("guides_title")}</h1>` +
+        `<p class="text-ink-muted text-sm mt-1">${t("guides_sub")}</p>` +
+      `</section>` +
+      `<section class="px-5 mt-4 space-y-5">` +
+        ITINERARIES.map((it) =>
+          `<a href="itinerary.html?id=${it.id}" class="block relative h-48 rounded-[20px] overflow-hidden shadow-card photo-overlay">` +
+            `<img ${App.imgAttrs(it.img, f(it.title))} class="absolute inset-0 w-full h-full object-cover"/>` +
+            `<div class="relative z-10 h-full flex flex-col justify-end p-4 text-white">` +
+              `<h2 class="font-display text-2xl font-semibold leading-tight">${f(it.title)}</h2>` +
+              `<p class="text-white/85 text-sm mt-1 line-clamp-1">${f(it.subtitle)}</p>` +
+              `<div class="mt-2 flex items-center gap-3 text-white/90 text-xs font-medium">` +
+                `<span>${App.icon("calendar_today","text-[15px]")} ${t(it.days===1?"itin_days_one":"itin_days", it.days)}</span>` +
+                `<span>${App.icon("pin_drop","text-[15px]")} ${t("itin_stops", it.stops.length)}</span>` +
+                `<span>${App.icon("directions_walk","text-[15px]")} ${t("itin_walking", it.hours)}</span>` +
+              `</div>` +
+            `</div>` +
+          `</a>`
+        ).join("") +
+        `<div class="h-4"></div>` +
+      `</section>`
+    );
+  }
+
+  /* ---- Single itinerary ----------------------------------------------- */
+  function routeMap() {
+    return (
+      `<div class="rounded-[16px] overflow-hidden border border-border shadow-card" style="position:relative;height:13rem;">` +
+        `<div id="route-map" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>` +
+      `</div>`
+    );
+  }
+
+  function numIcon(n) {
+    return L.divIcon({
+      className: "poi-marker",
+      html: `<div class="itin-num" style="width:26px;height:26px;font-size:13px;">${n}</div>`,
+      iconSize: [26, 26], iconAnchor: [13, 13],
+    });
+  }
+
+  let rmap = null;
+  function initRouteMap(it) {
+    if (rmap) { rmap.remove(); rmap = null; }
+    const pts = it.stops.map((s) => getPOI(s.poi)).filter(Boolean);
+    const latlngs = pts.map((p) => [p.lat, p.lng]);
+    rmap = L.map("route-map", { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19, subdomains: "abcd",
+    }).addTo(rmap);
+    L.polyline(latlngs, { color: "#1B7A8C", weight: 3, dashArray: "6 6", opacity: 0.9 }).addTo(rmap);
+    pts.forEach((p, i) => L.marker([p.lat, p.lng], { icon: numIcon(i + 1) }).addTo(rmap));
+    rmap.fitBounds(L.latLngBounds(latlngs).pad(0.25));
+    setTimeout(() => rmap && rmap.invalidateSize(), 60);
+  }
+
+  function renderDetail(it) {
+    const stops = it.stops.map((s, i) => {
+      const p = getPOI(s.poi);
+      if (!p) return "";
+      return (
+        `<div class="relative stop-line pl-14 pb-5">` +
+          `<div class="absolute left-2 top-0 w-10 h-10 rounded-full bg-accent text-ink font-display font-bold text-lg flex items-center justify-center shadow-card z-10">${i+1}</div>` +
+          `<a href="detail.html?id=${p.id}" class="flex gap-3 bg-surface rounded-[16px] border border-border shadow-card p-3">` +
+            `<img ${App.imgAttrs(p.img, f(p.name))} class="w-24 h-24 rounded-[12px] object-cover shrink-0"/>` +
+            `<div class="min-w-0 flex-1">` +
+              `<div class="flex items-center justify-between gap-2">` +
+                `<span class="inline-flex items-center gap-1 text-secondary text-[11px] font-semibold">${App.icon(getCategory(p.category).icon,"text-[14px]")}${f(getCategory(p.category))}</span>` +
+                `<span class="text-[11px] font-semibold text-ink-muted whitespace-nowrap">${App.icon("schedule","text-[13px]")} ${f(s.time)}</span>` +
+              `</div>` +
+              `<h3 class="font-display text-lg font-semibold text-ink leading-tight">${f(p.name)}</h3>` +
+              `<p class="text-xs text-ink/70 mt-0.5 line-clamp-2">${f(s.note)}</p>` +
+            `</div>` +
+          `</a>` +
+        `</div>`
+      );
+    }).join("");
+
+    return (
+      `<section class="relative h-[38vh] min-h-[280px] photo-overlay">` +
+        `<img ${App.imgAttrs(it.img, f(it.title))} class="absolute inset-0 w-full h-full object-cover"/>` +
+        `<div class="relative z-10 p-4">` +
+          `<button onclick="history.length>1?history.back():location.href='itinerary.html'" class="w-10 h-10 rounded-full bg-black/35 backdrop-blur text-white flex items-center justify-center">${App.icon("arrow_back")}</button>` +
+        `</div>` +
+        `<div class="absolute bottom-0 left-0 right-0 z-10 p-5 text-white">` +
+          `<h1 class="font-display text-3xl font-semibold leading-tight">${f(it.title)}</h1>` +
+          `<div class="mt-2 flex items-center gap-3 text-white/90 text-xs font-medium">` +
+            `<span>${App.icon("calendar_today","text-[15px]")} ${t(it.days===1?"itin_days_one":"itin_days", it.days)}</span>` +
+            `<span>${App.icon("pin_drop","text-[15px]")} ${t("itin_stops", it.stops.length)}</span>` +
+            `<span>${App.icon("directions_walk","text-[15px]")} ${t("itin_walking", it.hours)}</span>` +
+          `</div>` +
+        `</div>` +
+      `</section>` +
+
+      `<section class="px-5 pt-5">` +
+        `<p class="text-[15px] text-ink/80 leading-relaxed">${f(it.subtitle)}</p>` +
+        `<h2 class="mt-5 font-display text-lg font-semibold text-ink">${t("itin_route")}</h2>` +
+        `<div class="mt-2">${routeMap()}</div>` +
+        `<div class="mt-6">${stops}</div>` +
+        `<div class="h-28"></div>` +
+      `</section>` +
+
+      `<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-30 bg-surface/95 backdrop-blur-md border-t border-border p-3">` +
+        `<a href="detail.html?id=${it.stops[0].poi}" class="block text-center rounded-pill bg-primary text-white font-semibold h-12 leading-[3rem]">${t("itin_start")}</a>` +
+      `</div>`
+    );
+  }
+
+  if (itin) {
+    App.mount({ route: null, render: () => renderDetail(itin) });
+    App.afterPaint(() => initRouteMap(itin));
+  } else {
+    App.mount({ route: "guides", render: renderList });
+  }
+</script>
+</body>
+</html>

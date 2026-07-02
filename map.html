@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Map — Cartagena de Indias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      primary: "#C65D3B", "primary-dark": "#A84A2C",
+      secondary: "#1B7A8C", "secondary-dark": "#145E6C",
+      accent: "#E8A93C", background: "#FAF6F0", surface: "#FFFFFF",
+      "surface-warm": "#F2EAE0", ink: "#2A2320", "ink-muted": "#6B5F55",
+      border: "#E4D9CC", success: "#2E8B57", warning: "#E8A93C", error: "#C0392B",
+    },
+    fontFamily: { display: ["Fraunces", "serif"], body: ["Inter", "sans-serif"] },
+    borderRadius: { pill: "999px" },
+  }}};
+</script>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="stylesheet" href="assets/css/app.css"/>
+</head>
+<body>
+<div id="app"></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  const t = (k, n) => I18N.t(k, n), f = (o) => I18N.f(o);
+  const state = { cat: "all", view: "map", selected: null };
+  const CARTAGENA = [10.4180, -75.5500];
+
+  let map = null, markers = {}, userMarker = null;
+  const isVisible = (p) => state.cat === "all" || p.category === state.cat;
+
+  function pinIcon(color, size) {
+    const html =
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg">` +
+      `<path d="M12 2C7.6 2 4 5.5 4 9.8 4 15.3 12 22 12 22s8-6.7 8-12.2C20 5.5 16.4 2 12 2z"/>` +
+      `<circle cx="12" cy="9.6" r="3" fill="#fff"/></svg>`;
+    return L.divIcon({ className: "poi-marker", html, iconSize: [size, size], iconAnchor: [size / 2, size] });
+  }
+
+  function controls() {
+    const chips =
+      `<button data-cat="all" class="inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-full text-sm font-semibold border shadow-card transition-colors ${state.cat==="all"?"chip-active":"bg-surface/95 border-border text-ink"}">${t("dir_all")}</button>` +
+      CATEGORIES.map((c) =>
+        `<button data-cat="${c.id}" class="inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 rounded-full text-sm font-semibold border shadow-card transition-colors ${state.cat===c.id?"chip-active":"bg-surface/95 border-border text-ink"}">${App.icon(c.icon,"text-[17px]")}${f(c)}</button>`
+      ).join("");
+    return (
+      `<div class="absolute top-3 left-0 right-0 z-[1000] px-4 pointer-events-none">` +
+        `<div class="flex items-center bg-surface rounded-pill border border-border shadow-raised px-4 py-2.5 gap-2 pointer-events-auto">` +
+          App.icon("search","text-ink/40") +
+          `<span class="text-ink/40 text-sm flex-1">${t("search_ph")}</span>` +
+          `<div class="flex bg-surface-warm rounded-full p-0.5 text-xs font-bold">` +
+            `<button data-view="map" class="px-3 py-1 rounded-full ${state.view==="map"?"bg-primary text-white":"text-ink/60"}">${t("view_map")}</button>` +
+            `<button data-view="list" class="px-3 py-1 rounded-full ${state.view==="list"?"bg-primary text-white":"text-ink/60"}">${t("view_list")}</button>` +
+          `</div>` +
+        `</div>` +
+        `<div class="mt-2.5 flex gap-2 overflow-x-auto no-scrollbar pb-1 pointer-events-auto">${chips}</div>` +
+      `</div>`
+    );
+  }
+
+  function render() {
+    return (
+      `<div style="position:relative;height:calc(100vh - 128px);">` +
+        `<div id="leaflet" class="${state.view==="list"?"invisible":""}" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>` +
+        `<div id="list-wrap" class="overflow-y-auto bg-background ${state.view==="map"?"hidden":""}" style="position:absolute;top:0;left:0;right:0;bottom:0;">` +
+          `<div class="pt-[104px] px-5 grid grid-cols-1 gap-4 pb-6">` +
+            POIS.filter(isVisible).map((p) => App.poiCard(p)).join("") +
+          `</div>` +
+        `</div>` +
+        controls() +
+        `<button id="near-me" class="absolute right-4 z-[1000] w-12 h-12 rounded-full bg-surface shadow-raised text-secondary flex items-center justify-center" style="bottom:20px;">${App.icon("my_location")}</button>` +
+        `<div id="sheet" class="absolute bottom-4 left-0 right-0 z-[1000] px-4"></div>` +
+      `</div>`
+    );
+  }
+
+  function drawSheet() {
+    const host = document.getElementById("sheet");
+    const nm = document.getElementById("near-me");
+    if (!state.selected) { host.innerHTML = ""; if (nm) nm.style.bottom = "20px"; return; }
+    const p = getPOI(state.selected);
+    if (nm) nm.style.bottom = "128px";
+    host.innerHTML =
+      `<a href="detail.html?id=${p.id}" class="flex gap-3 bg-surface rounded-[18px] shadow-raised p-3 items-center fade-in">` +
+        `<img ${App.imgAttrs(p.img, f(p.name))} class="w-20 h-20 rounded-[12px] object-cover shrink-0"/>` +
+        `<div class="min-w-0 flex-1">` +
+          `<span class="inline-flex items-center gap-1 text-secondary text-[11px] font-semibold">${App.icon(getCategory(p.category).icon,"text-[14px]")}${f(getCategory(p.category))}</span>` +
+          `<h3 class="font-display text-lg font-semibold text-ink leading-tight truncate">${f(p.name)}</h3>` +
+          `<div class="flex items-center gap-2 text-xs text-ink-muted mt-0.5"><span class="truncate">${f(p.area)}</span>${App.stars(p.rating)}</div>` +
+        `</div>` +
+        `<span class="text-ink/30">${App.icon("chevron_right")}</span>` +
+      `</a>`;
+  }
+
+  function refreshMarkers() {
+    POIS.forEach((p) => {
+      const m = markers[p.id];
+      if (!m) return;
+      if (isVisible(p)) m.addTo(map); else map.removeLayer(m);
+      m.setIcon(pinIcon(state.selected === p.id ? "#C65D3B" : "#1B7A8C", state.selected === p.id ? 42 : 32));
+    });
+  }
+
+  function initMap() {
+    if (map) { map.remove(); map = null; }
+    markers = {}; userMarker = null;
+    map = L.map("leaflet", { zoomControl: true, attributionControl: true }).setView(CARTAGENA, 14);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom: 19, subdomains: "abcd",
+    }).addTo(map);
+    POIS.forEach((p) => {
+      const m = L.marker([p.lat, p.lng], { icon: pinIcon("#1B7A8C", 32) });
+      m.on("click", () => { state.selected = state.selected === p.id ? null : p.id; refreshMarkers(); drawSheet(); });
+      markers[p.id] = m;
+    });
+    refreshMarkers();
+    drawSheet();
+    setTimeout(() => map && map.invalidateSize(), 60);
+  }
+
+  App.mount({ route: "map", render });
+  App.afterPaint(() => {
+    initMap();
+    const root = document.getElementById("app");
+    root.querySelectorAll("[data-cat]").forEach((b) =>
+      b.addEventListener("click", () => {
+        state.cat = b.dataset.cat;
+        if (state.selected && !isVisible(getPOI(state.selected))) state.selected = null;
+        root.querySelectorAll("[data-cat]").forEach((x) => x.classList.toggle("chip-active", x.dataset.cat === state.cat));
+        // rebuild list too
+        const listGrid = document.querySelector("#list-wrap > div");
+        if (listGrid) listGrid.innerHTML = POIS.filter(isVisible).map((p) => App.poiCard(p)).join("");
+        refreshMarkers(); drawSheet();
+      }));
+    root.querySelectorAll("[data-view]").forEach((b) =>
+      b.addEventListener("click", () => {
+        state.view = b.dataset.view;
+        b.parentElement.querySelectorAll("[data-view]").forEach((x) => {
+          const on = x.dataset.view === state.view;
+          x.classList.toggle("bg-primary", on);
+          x.classList.toggle("text-white", on);
+          x.classList.toggle("text-ink/60", !on);
+        });
+        document.getElementById("leaflet").classList.toggle("invisible", state.view === "list");
+        document.getElementById("list-wrap").classList.toggle("hidden", state.view === "map");
+        if (state.view === "map") setTimeout(() => map.invalidateSize(), 50);
+      }));
+    const nm = document.getElementById("near-me");
+    if (nm) nm.addEventListener("click", () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const ll = [pos.coords.latitude, pos.coords.longitude];
+          if (userMarker) map.removeLayer(userMarker);
+          userMarker = L.circleMarker(ll, { radius: 8, color: "#fff", weight: 2, fillColor: "#1B7A8C", fillOpacity: 1 }).addTo(map);
+          map.setView(ll, 14);
+        },
+        () => { map.setView(CARTAGENA, 14); }
+      );
+    });
+  });
+</script>
+</body>
+</html>

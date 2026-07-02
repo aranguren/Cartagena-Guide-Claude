@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Explore — Cartagena de Indias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      primary: "#C65D3B", "primary-dark": "#A84A2C",
+      secondary: "#1B7A8C", "secondary-dark": "#145E6C",
+      accent: "#E8A93C", background: "#FAF6F0", surface: "#FFFFFF",
+      "surface-warm": "#F2EAE0", ink: "#2A2320", "ink-muted": "#6B5F55",
+      border: "#E4D9CC", success: "#2E8B57", warning: "#E8A93C", error: "#C0392B",
+    },
+    fontFamily: { display: ["Fraunces", "serif"], body: ["Inter", "sans-serif"] },
+    borderRadius: { pill: "999px" },
+  }}};
+</script>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="stylesheet" href="assets/css/app.css"/>
+</head>
+<body>
+<div id="app"></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  const t = (k, n) => I18N.t(k, n), f = (o) => I18N.f(o);
+
+  const state = {
+    cat: App.getParam("cat") || "all",
+    q: App.getParam("q") || "",
+    sort: "featured",
+  };
+
+  function matches(poi) {
+    if (state.cat !== "all" && poi.category !== state.cat) return false;
+    const q = state.q.trim().toLowerCase();
+    if (!q) return true;
+    const hay = [
+      poi.name.en, poi.name.es, poi.area.en, poi.area.es,
+      getCategory(poi.category).en, getCategory(poi.category).es,
+    ].join(" ").toLowerCase();
+    return hay.includes(q);
+  }
+
+  function sorted(list) {
+    const l = [...list];
+    if (state.sort === "rating") l.sort((a, b) => b.rating - a.rating);
+    else if (state.sort === "az") l.sort((a, b) => f(a.name).localeCompare(f(b.name)));
+    else l.sort((a, b) => (b.featured === true) - (a.featured === true) || b.rating - a.rating);
+    return l;
+  }
+
+  function render() {
+    const chips =
+      `<button data-cat="all" class="inline-flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${state.cat==="all"?"chip-active":"bg-surface border-border text-ink"}">${t("dir_all")}</button>` +
+      CATEGORIES.map((c) =>
+        `<button data-cat="${c.id}" class="inline-flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${state.cat===c.id?"chip-active":"bg-surface border-border text-ink"}">${App.icon(c.icon,"text-[18px]")}${f(c)}</button>`
+      ).join("");
+
+    const sortOpts = [["featured","sort_featured"],["rating","sort_rating"],["az","sort_az"]]
+      .map(([v,k]) => `<option value="${v}" ${state.sort===v?"selected":""}>${t(k)}</option>`).join("");
+
+    return (
+      `<section class="px-5 pt-4">` +
+        `<h1 class="font-display text-2xl font-semibold text-ink">${t("dir_title")}</h1>` +
+      `</section>` +
+      `<div class="sticky top-14 z-20 bg-background/95 backdrop-blur-md pt-3 pb-2">` +
+        `<div class="px-5 flex items-center gap-2 bg-surface mx-5 rounded-pill border border-border shadow-card px-4 py-2.5">` +
+          App.icon("search", "text-ink/40") +
+          `<input id="search-input" type="search" value="${state.q.replace(/"/g,'&quot;')}" enterkeyhint="search" placeholder="${t("search_ph")}" class="flex-1 bg-transparent border-0 focus:ring-0 text-ink text-sm placeholder:text-ink/40 p-0"/>` +
+        `</div>` +
+        `<div class="mt-3 flex gap-2.5 overflow-x-auto no-scrollbar px-5 pb-1">${chips}</div>` +
+        `<div class="mt-2 px-5 flex items-center justify-between">` +
+          `<span id="result-count" class="text-ink-muted text-sm font-medium"></span>` +
+          `<label class="flex items-center gap-1.5 text-ink-muted text-sm">${App.icon("sort","text-[18px]")}` +
+            `<select id="sort-select" class="bg-transparent border-0 text-ink text-sm font-semibold focus:ring-0 py-0 pr-6">${sortOpts}</select>` +
+          `</label>` +
+        `</div>` +
+      `</div>` +
+      `<section id="results" class="px-5 pt-2 grid grid-cols-1 gap-4"></section>`
+    );
+  }
+
+  function drawResults() {
+    const list = sorted(POIS.filter(matches));
+    const grid = document.getElementById("results");
+    const count = document.getElementById("result-count");
+    count.textContent = t(list.length === 1 ? "dir_count_one" : "dir_count", list.length);
+    if (!list.length) {
+      grid.innerHTML = `<p class="text-center text-ink-muted py-16">${t("dir_empty")}</p>`;
+      return;
+    }
+    grid.innerHTML = list.map((p) => App.poiCard(p)).join("");
+  }
+
+  App.mount({ route: "explore", render });
+  App.afterPaint(() => {
+    drawResults();
+    document.querySelectorAll("[data-cat]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        state.cat = btn.dataset.cat;
+        document.querySelectorAll("[data-cat]").forEach((b) =>
+          b.classList.toggle("chip-active", b.dataset.cat === state.cat));
+        drawResults();
+      }));
+    const si = document.getElementById("search-input");
+    if (si) si.addEventListener("input", () => { state.q = si.value; drawResults(); });
+    const ss = document.getElementById("sort-select");
+    if (ss) ss.addEventListener("change", () => { state.sort = ss.value; drawResults(); });
+  });
+</script>
+</body>
+</html>

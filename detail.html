@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Cartagena de Indias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      primary: "#C65D3B", "primary-dark": "#A84A2C",
+      secondary: "#1B7A8C", "secondary-dark": "#145E6C",
+      accent: "#E8A93C", background: "#FAF6F0", surface: "#FFFFFF",
+      "surface-warm": "#F2EAE0", ink: "#2A2320", "ink-muted": "#6B5F55",
+      border: "#E4D9CC", success: "#2E8B57", warning: "#E8A93C", error: "#C0392B",
+    },
+    fontFamily: { display: ["Fraunces", "serif"], body: ["Inter", "sans-serif"] },
+    borderRadius: { pill: "999px" },
+  }}};
+</script>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
+<link rel="stylesheet" href="assets/css/app.css"/>
+</head>
+<body>
+<div id="app"></div>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  const t = (k, n) => I18N.t(k, n), f = (o) => I18N.f(o);
+  const poi = getPOI(App.getParam("id")) || POIS[0];
+  const cat = getCategory(poi.category);
+
+  const SAVED_KEY = "cdi_saved";
+  const getSaved = () => JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+  const isSaved = () => getSaved().includes(poi.id);
+  function toggleSaved() {
+    const s = new Set(getSaved());
+    s.has(poi.id) ? s.delete(poi.id) : s.add(poi.id);
+    localStorage.setItem(SAVED_KEY, JSON.stringify([...s]));
+  }
+
+  function infoRow(iconName, label, value) {
+    return (
+      `<div class="flex items-center gap-3 py-3">` +
+        `<span class="w-9 h-9 rounded-full bg-surface-warm flex items-center justify-center text-secondary">${App.icon(iconName,"text-[20px]")}</span>` +
+        `<div><div class="text-xs text-ink-muted">${label}</div>` +
+        `<div class="text-sm font-semibold text-ink">${value}</div></div>` +
+      `</div>`
+    );
+  }
+
+  function miniMap() {
+    return (
+      `<div class="rounded-[16px] overflow-hidden border border-border shadow-card" style="position:relative;height:11rem;">` +
+        `<div id="detail-map" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>` +
+        `<a href="map.html" class="absolute bottom-3 right-3 z-[1000] bg-surface/95 text-ink text-xs font-semibold px-3 py-1.5 rounded-full shadow-card">${t("view_map")}</a>` +
+      `</div>`
+    );
+  }
+
+  function pinIcon() {
+    const html =
+      `<svg width="34" height="34" viewBox="0 0 24 24" fill="#C65D3B" xmlns="http://www.w3.org/2000/svg">` +
+      `<path d="M12 2C7.6 2 4 5.5 4 9.8 4 15.3 12 22 12 22s8-6.7 8-12.2C20 5.5 16.4 2 12 2z"/>` +
+      `<circle cx="12" cy="9.6" r="3" fill="#fff"/></svg>`;
+    return L.divIcon({ className: "poi-marker", html, iconSize: [34, 34], iconAnchor: [17, 34] });
+  }
+
+  let dmap = null;
+  function initMiniMap() {
+    if (dmap) { dmap.remove(); dmap = null; }
+    dmap = L.map("detail-map", {
+      zoomControl: false, attributionControl: false,
+      dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
+    }).setView([poi.lat, poi.lng], 15);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19, subdomains: "abcd",
+    }).addTo(dmap);
+    L.marker([poi.lat, poi.lng], { icon: pinIcon() }).addTo(dmap);
+    setTimeout(() => dmap && dmap.invalidateSize(), 60);
+  }
+
+  function render() {
+    const nearby = POIS.filter((p) => p.id !== poi.id && p.category === poi.category)
+      .concat(POIS.filter((p) => p.id !== poi.id && p.category !== poi.category)).slice(0, 6);
+    const saved = isSaved();
+    const mapsQ = encodeURIComponent(f(poi.name) + ", Cartagena, Colombia");
+
+    return (
+      `<section class="relative h-[46vh] min-h-[320px] photo-overlay">` +
+        `<img ${App.imgAttrs(poi.img, f(poi.name))} class="absolute inset-0 w-full h-full object-cover"/>` +
+        `<div class="relative z-10 flex items-center justify-between p-4">` +
+          `<button onclick="history.length>1?history.back():location.href='directory.html'" class="w-10 h-10 rounded-full bg-black/35 backdrop-blur text-white flex items-center justify-center">${App.icon("arrow_back")}</button>` +
+          `<button id="save-top" class="w-10 h-10 rounded-full bg-black/35 backdrop-blur text-white flex items-center justify-center">${App.icon("bookmark", saved?"msym-fill":"")}</button>` +
+        `</div>` +
+      `</section>` +
+
+      `<section class="relative -mt-6 bg-background rounded-t-[24px] px-5 pt-5">` +
+        `<nav class="text-xs text-ink-muted mb-2"><a href="index.html">${t("nav_home")}</a> / <a href="directory.html?cat=${poi.category}">${f(cat)}</a></nav>` +
+        `<div class="flex items-start justify-between gap-3">` +
+          `<h1 class="font-display text-3xl font-semibold text-ink leading-tight">${f(poi.name)}</h1>` +
+        `</div>` +
+        `<div class="mt-2 flex items-center gap-3">` +
+          `<span class="inline-flex items-center gap-1 bg-secondary/10 text-secondary text-xs font-semibold px-3 py-1 rounded-full">${App.icon(cat.icon,"text-[16px]")}${f(cat)}</span>` +
+          App.stars(poi.rating) +
+        `</div>` +
+
+        `<h2 class="mt-5 font-display text-lg font-semibold text-ink">${t("detail_about")}</h2>` +
+        `<p class="mt-1.5 text-[15px] leading-relaxed text-ink/80">${f(poi.desc)}</p>` +
+
+        `<div class="mt-4 bg-surface rounded-[16px] border border-border divide-y divide-border px-4 shadow-card">` +
+          infoRow("schedule", t("detail_hours"), f(poi.hours)) +
+          infoRow("location_on", t("detail_address"), f(poi.area)) +
+          infoRow("payments", t("detail_price"), f(poi.price)) +
+        `</div>` +
+
+        `<h2 class="mt-6 font-display text-lg font-semibold text-ink">${t("detail_location")}</h2>` +
+        `<div class="mt-2">${miniMap()}</div>` +
+
+        `<h2 class="mt-6 font-display text-lg font-semibold text-ink">${t("detail_nearby")}</h2>` +
+        `<div class="mt-3 -mx-5 px-5 flex gap-4 overflow-x-auto no-scrollbar pb-2">` +
+          nearby.map((p) => App.poiCard(p, { wide: true })).join("") +
+        `</div>` +
+        `<div class="h-28"></div>` +
+      `</section>` +
+
+      `<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-30 bg-surface/95 backdrop-blur-md border-t border-border p-3 flex gap-3">` +
+        `<a href="https://www.google.com/maps/search/?api=1&query=${mapsQ}" target="_blank" rel="noopener" class="w-12 h-12 shrink-0 rounded-pill border border-secondary text-secondary flex items-center justify-center">${App.icon("directions")}</a>` +
+        `<button id="save-btn" class="flex-1 rounded-pill ${saved?"bg-success":"bg-primary"} text-white font-semibold flex items-center justify-center gap-2 h-12 transition-colors">` +
+          `${App.icon(saved?"check":"add")}<span>${saved?t("detail_added"):t("detail_add")}</span></button>` +
+      `</div>`
+    );
+  }
+
+  function updateSaveUI() {
+    const saved = isSaved();
+    const btn = document.getElementById("save-btn");
+    btn.classList.toggle("bg-success", saved);
+    btn.classList.toggle("bg-primary", !saved);
+    btn.innerHTML = App.icon(saved ? "check" : "add") +
+      `<span>${saved ? t("detail_added") : t("detail_add")}</span>`;
+    const topIcon = document.querySelector("#save-top .material-symbols-outlined");
+    if (topIcon) topIcon.classList.toggle("msym-fill", saved);
+  }
+
+  App.mount({ route: null, render });
+  App.afterPaint(() => {
+    initMiniMap();
+    document.getElementById("app").querySelectorAll("#save-btn,#save-top").forEach((b) =>
+      b.addEventListener("click", () => { toggleSaved(); updateSaveUI(); }));
+  });
+</script>
+</body>
+</html>
